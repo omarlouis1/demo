@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        nodejs "NodeJS_16"
+        nodejs "NodeJS_ 16"
     }
 
     environment {
