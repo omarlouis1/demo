@@ -1,24 +1,21 @@
-# Dockerfile.frontend
+DOckerfile frontend
+
 FROM node:22.18.0-alpine
 
 WORKDIR /app
 
-# Copier package.json et vite.config.js pour utiliser le cache
+# Copier les fichiers package d'abord
 COPY package*.json ./
 COPY vite.config.js ./
 
-# Installer les dépendances
+# Installer toutes les dépendances (dont devDependencies)
 RUN npm install
 
-# Copier le reste du code
+# Copier le code source
 COPY . .
 
-# Exposer le port utilisé par Vite
+# Exposer le port que Vite utilise (généralement 5173 ou 3000)
 EXPOSE 5173
 
-# Définir la variable d'environnement pour l'API backend
-ARG VITE_API_URL
-ENV VITE_API_URL=$VITE_API_URL
-
-# Démarrer le serveur Vite en mode dev accessible de l'extérieur
+# Lancer en mode développement
 CMD ["npm", "run", "dev", "--", "--host=0.0.0.0"]
