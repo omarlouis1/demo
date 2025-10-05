@@ -2,20 +2,22 @@ version: "3.9"
 
 services:
   frontend:
-    image: mhd0/react-frontend:latest
+    build:
+      context: ./front-end
+      args:
+        VITE_API_URL: http://backend:5001/api
     container_name: react-frontend
     ports:
       - "5173:5173"
     depends_on:
       - backend
-    environment:
-      - VITE_API_URL=http://192.168.56.5:5001/api
     networks:
       - backend-net
     restart: unless-stopped
 
   backend:
-    image: mhd0/express-backend:latest
+    build:
+      context: ./back-end
     container_name: express-api
     ports:
       - "5001:5001"
