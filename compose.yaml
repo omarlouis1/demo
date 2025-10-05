@@ -9,7 +9,7 @@ services:
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://backend:5001/api
+      - VITE_API_URL=http://192.168.56.5:5001/api
     networks:
       - backend-net
     restart: unless-stopped
