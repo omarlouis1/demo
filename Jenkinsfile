@@ -94,7 +94,7 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                      //  export SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.javascript.node.max_old_space_size=2048"
+                        export SONAR_SCANNER_OPTS="-Xmx4024m -Dsonar.javascript.node.max_old_space_size=4048"
                         sonar-scanner \
                           -Dsonar.projectKey=fil-rouge \
                           -Dsonar.projectName="Projet Fil Rouge" \
