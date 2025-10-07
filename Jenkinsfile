@@ -10,7 +10,7 @@ pipeline {
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
         SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
-        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net' // tunnel Serveo/ngrok
+        WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net' // tunnel Serveo/ngrok
         SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=4096"
     }
 
