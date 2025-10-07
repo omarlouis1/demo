@@ -99,8 +99,8 @@ pipeline {
                       -Dsonar.projectVersion=1.0 \
                       -Dsonar.sources=. \
                       -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                      -Dsonar.host.url=http://localhost:9000 \
-                      -Dsonar.login=$SONAR_TOKEN
+                      -Dsonar.host.url=http://192.168.56.5:9000 \
+                      -Dsonar.login=sqa_0757bfa7dd7f3d4b935b1dbbb064223fcf9976c6
                 '''
             }
         }
