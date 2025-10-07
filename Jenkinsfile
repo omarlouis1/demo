@@ -9,7 +9,8 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net'
+        SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
+        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net' // tunnel Serveo/ngrok
     }
 
     triggers {
@@ -19,7 +20,7 @@ pipeline {
                 [key: 'pusher_name', value: '$.pusher.name'],
                 [key: 'commit_message', value: '$.head_commit.message']
             ],
-            causeString: 'Push par $pusher_name sur $ref: "$commit_message"',
+            causeString: 'Push par $pusher_name sur $ref : "$commit_message"',
             token: 'mysecret',
             printContributedVariables: true,
             printPostContent: true
@@ -28,48 +29,103 @@ pipeline {
 
     stages {
 
+        // -----------------------
+        // 1️⃣ Récupération du code
+        // -----------------------
         stage('Checkout') {
             steps {
+                echo "📦 Récupération du code depuis GitHub..."
                 git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
             }
         }
 
-        stage('Install Dependencies - Backend') {
-            steps {
-                dir('back-end') {
-                    sh 'npm install'
+        // -----------------------
+        // 2️⃣ Installation dépendances
+        // -----------------------
+        stage('Install Dependencies') {
+            parallel {
+                stage('Backend') {
+                    steps {
+                        dir('back-end') {
+                            sh 'npm install'
+                        }
+                    }
+                }
+                stage('Frontend') {
+                    steps {
+                        dir('front-end') {
+                            sh 'npm install'
+                        }
+                    }
                 }
             }
         }
 
-        stage('Install Dependencies - Frontend') {
-            steps {
-                dir('front-end') {
-                    sh 'npm install'
-                }
-            }
-        }
-
+        // -----------------------
+        // 3️⃣ Tests unitaires
+        // -----------------------
         stage('Run Tests') {
             steps {
+                echo "🧪 Exécution des tests..."
                 script {
-                    sh 'cd back-end && npm test || echo "Aucun test backend"'
-                    sh 'cd front-end && npm test || echo "Aucun test frontend"'
+                    sh 'cd back-end && npm test || echo "⚠️ Aucun test backend"'
+                    sh 'cd front-end && npm test || echo "⚠️ Aucun test frontend"'
                 }
             }
         }
 
+        // -----------------------
+        // 4️⃣ Analyse SonarQube AVANT Build
+        // -----------------------
+        stage('SonarQube Analysis') {
+            steps {
+                echo "🔍 Analyse du code avec SonarQube..."
+                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        sonar-scanner \
+                          -Dsonar.projectKey=fil-rouge \
+                          -Dsonar.projectName='Projet Fil Rouge' \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.token=${SONAR_TOKEN}
+                    """
+                }
+            }
+        }
+
+        // -----------------------
+        // 5️⃣ Vérification Quality Gate
+        // -----------------------
+        stage('Quality Gate') {
+            steps {
+                echo "🛡️ Vérification du Quality Gate..."
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // -----------------------
+        // 6️⃣ Build Docker
+        // -----------------------
         stage('Build Docker Images') {
             steps {
-                script {
-                    sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
-                    sh "docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end"
-                }
+                echo "🐳 Construction des images Docker..."
+                sh """
+                    docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
+                """
             }
         }
 
+        // -----------------------
+        // 7️⃣ Push Docker Hub
+        // -----------------------
         stage('Push Docker Images') {
             steps {
+                echo "📤 Envoi des images sur Docker Hub..."
                 withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
                         echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
@@ -80,82 +136,32 @@ pipeline {
             }
         }
 
-        stage('Clean Docker') {
+        // -----------------------
+        // 8️⃣ Déploiement Docker Compose
+        // -----------------------
+        stage('Deploy') {
             steps {
-                sh 'docker container prune -f'
-                sh 'docker image prune -f'
+                echo "🚀 Déploiement via docker-compose..."
+                sh '''
+                    docker-compose -f compose.yaml down || true
+                    docker-compose -f compose.yaml pull
+                    docker-compose -f compose.yaml up -d
+                    docker-compose ps
+                '''
             }
         }
 
         // -----------------------
-        // Analyse SonarQube
-        // -----------------------
-        stage('SonarQube Analysis') {
-            steps {
-                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                    sh '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=fil-rouge \
-                          -Dsonar.projectName="Projet Fil Rouge" \
-                          -Dsonar.projectVersion=1.0 \
-                          -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                          -Dsonar.host.url=http://192.168.56.5:9000 \
-                          -Dsonar.token=$SONAR_TOKEN
-                    '''
-                }
-            }
-        }
-
-        // -----------------------
-        // Quality Gate
-        // -----------------------
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        // -----------------------
-        // Vérification Docker
-        // -----------------------
-        stage('Check Docker & Compose') {
-            steps {
-                sh 'docker --version'
-                sh 'docker-compose --version || echo "docker-compose non trouvé"'
-            }
-        }
-
-        // -----------------------
-        // Déploiement via Docker Compose
-        // -----------------------
-        stage('Deploy (compose.yaml)') {
-            steps {
-                dir('.') {
-                    sh '''
-                        docker-compose -f compose.yaml down || true
-                        docker-compose -f compose.yaml pull
-                        docker-compose -f compose.yaml up -d
-                        docker-compose -f compose.yaml ps
-                        docker-compose -f compose.yaml logs --tail=50
-                    '''
-                }
-            }
-        }
-
-        // -----------------------
-        // Tests de disponibilité
+        // 9️⃣ Tests de disponibilité
         // -----------------------
         stage('Smoke Test') {
             steps {
+                echo "🔎 Vérification des services..."
                 sh '''
-                    echo "Vérification Frontend (port 5173)..."
-                    curl -f http://localhost:5173 || echo "Frontend unreachable"
-
-                    echo "Vérification Backend (port 5001)..."
-                    curl -f http://localhost:5001/api || echo "Backend unreachable"
+                    echo "Frontend (port 5173) :" 
+                    curl -f http://localhost:5173 || echo "⚠️ Frontend inaccessible"
+                    echo "Backend (port 5001) :"
+                    curl -f http://localhost:5001/api || echo "⚠️ Backend inaccessible"
                 '''
             }
         }
@@ -163,15 +169,22 @@ pipeline {
 
     post {
         success {
+            echo "✅ Pipeline terminé avec succès !"
             emailext(
-                subject: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Pipeline réussi 🎉\n\nDétails : ${env.BUILD_URL}\n\nAccès SonarQube : ${env.SONAR_HOST_URL}/projects",
+                subject: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: """
+                ✅ Build réussi pour ${env.JOB_NAME} #${env.BUILD_NUMBER}
+                🔗 Détails: ${env.BUILD_URL}
+                🔍 Analyse SonarQube: ${SONAR_HOST_URL}/dashboard?id=fil-rouge
+                🌍 Webhook Serveo/Ngrok: ${WEBHOOK_PUBLIC}
+                """,
                 to: "omzokao99@gmail.com"
             )
         }
         failure {
+            echo "❌ Échec du pipeline."
             emailext(
-                subject: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                subject: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
                 body: "Le pipeline a échoué 💥\n\nDétails : ${env.BUILD_URL}",
                 to: "omzokao99@gmail.com"
             )
