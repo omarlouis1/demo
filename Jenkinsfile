@@ -33,7 +33,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
-                git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
+                git branch: 'main', url: 'https://github.com/omarlouis1/demo.git'
             }
         }
 
