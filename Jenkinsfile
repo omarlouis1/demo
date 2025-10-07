@@ -9,7 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'http://192.168.56.5:9000'  // IP interne Vagrant pour SonarQube
+        SONAR_HOST_URL  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net'
     }
 
     triggers {
@@ -27,30 +27,44 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
             }
         }
 
-        stage('Install Dependencies') {
+        stage('Install Dependencies - Backend') {
             steps {
-                dir('back-end') { sh 'npm install' }
-                dir('front-end') { sh 'npm install' }
+                dir('back-end') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Install Dependencies - Frontend') {
+            steps {
+                dir('front-end') {
+                    sh 'npm install'
+                }
             }
         }
 
         stage('Run Tests') {
             steps {
-                sh 'cd back-end && npm test || echo "Aucun test backend"'
-                sh 'cd front-end && npm test || echo "Aucun test frontend"'
+                script {
+                    sh 'cd back-end && npm test || echo "Aucun test backend"'
+                    sh 'cd front-end && npm test || echo "Aucun test frontend"'
+                }
             }
         }
 
         stage('Build Docker Images') {
             steps {
-                sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
-                sh "docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end"
+                script {
+                    sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
+                    sh "docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end"
+                }
             }
         }
 
@@ -78,23 +92,24 @@ pipeline {
         // -----------------------
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQubeLocal') { // Nom configuré dans Jenkins → SonarQube Servers
-                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                        sh """
-                            sonar-scanner \
-                              -Dsonar.projectKey=fil-rouge \
-                              -Dsonar.projectName="Projet Fil Rouge" \
-                              -Dsonar.projectVersion=1.0 \
-                              -Dsonar.sources=. \
-                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                              -Dsonar.host.url=$SONAR_HOST_URL \
-                              -Dsonar.token=$SONAR_TOKEN
-                        """
-                    }
+                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=fil-rouge \
+                          -Dsonar.projectName="Projet Fil Rouge" \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                          -Dsonar.host.url=http://192.168.56.5:9000 \
+                          -Dsonar.login=$SONAR_TOKEN
+                    '''
                 }
             }
         }
 
+        // -----------------------
+        // Quality Gate
+        // -----------------------
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
@@ -103,6 +118,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // Vérification Docker
+        // -----------------------
         stage('Check Docker & Compose') {
             steps {
                 sh 'docker --version'
@@ -110,6 +128,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // Déploiement via Docker Compose
+        // -----------------------
         stage('Deploy (compose.yaml)') {
             steps {
                 dir('.') {
@@ -124,6 +145,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // Tests de disponibilité
+        // -----------------------
         stage('Smoke Test') {
             steps {
                 sh '''
@@ -141,7 +165,7 @@ pipeline {
         success {
             emailext(
                 subject: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Pipeline réussi 🎉\n\nDétails : ${env.BUILD_URL}\n\nAccès SonarQube : ${SONAR_HOST_URL}/projects",
+                body: "Pipeline réussi 🎉\n\nDétails : ${env.BUILD_URL}\n\nAccès SonarQube : ${env.SONAR_HOST_URL}/projects",
                 to: "omzokao99@gmail.com"
             )
         }
@@ -153,4 +177,4 @@ pipeline {
             )
         }
     }
-}
+} 
