@@ -9,10 +9,10 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
+        SONAR_TOKEN     = credentials('sonar-token') // Crée un credential Secret Text avec ton token
     }
 
     triggers {
-        // Pipeline déclenché par webhook GitHub
         GenericTrigger(
             genericVariables: [
                 [key: 'ref', value: '$.ref'],
@@ -88,13 +88,20 @@ pipeline {
         }
 
         // -----------------------
-        // Analyse SonarQube
+        // SonarQube Analysis
         // -----------------------
         stage('SonarQube Analysis') {
             steps {
-                withSonarQubeEnv('SonarQube_Local') {
-                    sh "sonar-scanner"
-                }
+                sh '''
+                    sonar-scanner \
+                      -Dsonar.projectKey=fil-rouge \
+                      -Dsonar.projectName="Projet Fil Rouge" \
+                      -Dsonar.projectVersion=1.0 \
+                      -Dsonar.sources=. \
+                      -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                      -Dsonar.host.url=http://localhost:9000 \
+                      -Dsonar.login=$SONAR_TOKEN
+                '''
             }
         }
 
