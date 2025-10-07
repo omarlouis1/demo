@@ -9,8 +9,8 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
-        WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net' // tunnel Serveo/ngrok
+        SONAR_HOST_URL  = 'http://192.168.56.5:9000'
+        WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net'
         SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=4096"
     }
 
@@ -30,9 +30,6 @@ pipeline {
 
     stages {
 
-        // -----------------------
-        // 1️⃣ Récupération du code
-        // -----------------------
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
@@ -40,9 +37,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 2️⃣ Installation dépendances
-        // -----------------------
         stage('Install Dependencies') {
             parallel {
                 stage('Backend') {
@@ -62,9 +56,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 3️⃣ Tests unitaires
-        // -----------------------
         stage('Run Tests') {
             steps {
                 echo "🧪 Exécution des tests..."
@@ -75,31 +66,26 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 4️⃣ Analyse SonarQube AVANT Build
-        // -----------------------
         stage('SonarQube Analysis') {
             steps {
                 echo "🔍 Analyse du code avec SonarQube..."
-             withSonarQubeEnv('SonarQube_Local') {  // nom du serveur SonarQube défini dans Jenkins
-                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                    sh """
-                        sonar-scanner \
-                          -Dsonar.projectKey=fil-rouge \
-                          -Dsonar.projectName='Projet Fil Rouge' \
-                          -Dsonar.projectVersion=1.0 \
-                          -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                          -Dsonar.host.url=${SONAR_HOST_URL} \
-                          -Dsonar.token=${SONAR_TOKEN}
-                    """
-                }
+                withSonarQubeEnv('SonarQube_Local') { 
+                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                        sh """
+                            sonar-scanner \
+                              -Dsonar.projectKey=fil-rouge \
+                              -Dsonar.projectName='Projet Fil Rouge' \
+                              -Dsonar.projectVersion=1.0 \
+                              -Dsonar.sources=. \
+                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
+                              -Dsonar.host.url=${SONAR_HOST_URL} \
+                              -Dsonar.token=${SONAR_TOKEN}
+                        """
+                    } // ferme withCredentials
+                } // ferme withSonarQubeEnv
             }
         }
 
-        // -----------------------
-        // 6️⃣ Build Docker
-        // -----------------------
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Construction des images Docker..."
@@ -110,9 +96,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 7️⃣ Push Docker Hub
-        // -----------------------
         stage('Push Docker Images') {
             steps {
                 echo "📤 Envoi des images sur Docker Hub..."
@@ -126,9 +109,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 8️⃣ Déploiement Docker Compose
-        // -----------------------
         stage('Deploy') {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
@@ -141,9 +121,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 9️⃣ Tests de disponibilité
-        // -----------------------
         stage('Smoke Test') {
             steps {
                 echo "🔎 Vérification des services..."
