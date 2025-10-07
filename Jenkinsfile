@@ -9,8 +9,8 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'http://192.168.56.5:9000'
-        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net'
+        SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
+        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net' // tunnel Serveo/ngrok
         SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=4096"
     }
 
@@ -30,6 +30,9 @@ pipeline {
 
     stages {
 
+        // -----------------------
+        // 1️⃣ Récupération du code
+        // -----------------------
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
@@ -37,52 +40,78 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 2️⃣ Installation dépendances
+        // -----------------------
         stage('Install Dependencies') {
             parallel {
                 stage('Backend') {
-                    steps { dir('back-end') { sh 'npm install' } }
+                    steps {
+                        dir('back-end') {
+                            sh 'npm install'
+                        }
+                    }
                 }
                 stage('Frontend') {
-                    steps { dir('front-end') { sh 'npm install' } }
+                    steps {
+                        dir('front-end') {
+                            sh 'npm install'
+                        }
+                    }
                 }
             }
         }
 
-        stage('Run Tests & Coverage') {
+        // -----------------------
+        // 3️⃣ Tests unitaires
+        // -----------------------
+        stage('Run Tests') {
             steps {
-                echo "🧪 Exécution des tests et génération de coverage..."
+                echo "🧪 Exécution des tests..."
                 script {
-                    dir('back-end') {
-                        sh 'npm test -- --coverage || echo "⚠️ Aucun test backend"'
-                    }
-                    dir('front-end') {
-                        sh 'npm test -- --coverage --watchAll=false || echo "⚠️ Aucun test frontend"'
-                    }
+                    sh 'cd back-end && npm test || echo "⚠️ Aucun test backend"'
+                    sh 'cd front-end && npm test || echo "⚠️ Aucun test frontend"'
                 }
             }
         }
 
+        // -----------------------
+        // 4️⃣ Analyse SonarQube AVANT Build
+        // -----------------------
         stage('SonarQube Analysis') {
             steps {
-                echo "🔍 Analyse SonarQube avec couverture..."
-                withSonarQubeEnv('SonarQube_Local') {
-                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                        sh """
-                            sonar-scanner \
-                              -Dsonar.projectKey=fil-rouge \
-                              -Dsonar.projectName='Projet Fil Rouge' \
-                              -Dsonar.projectVersion=1.0 \
-                              -Dsonar.sources=. \
-                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                              -Dsonar.host.url=${SONAR_HOST_URL} \
-                              -Dsonar.login=${SONAR_TOKEN} \
-                              -Dsonar.javascript.lcov.reportPaths=front-end/coverage/lcov.info,back-end/coverage/lcov.info
-                        """
-                    }
+                echo "🔍 Analyse du code avec SonarQube..."
+             withSonarQubeEnv('SonarQube_Local') {  // nom du serveur SonarQube défini dans Jenkins
+                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        sonar-scanner \
+                          -Dsonar.projectKey=fil-rouge \
+                          -Dsonar.projectName='Projet Fil Rouge' \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
 
+        // -----------------------
+        // 5️⃣ Vérification Quality Gate
+        // -----------------------
+        stage('Quality Gate') {
+            steps {
+                echo "🛡️ Vérification du Quality Gate..."
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // -----------------------
+        // 6️⃣ Build Docker
+        // -----------------------
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Construction des images Docker..."
@@ -93,6 +122,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 7️⃣ Push Docker Hub
+        // -----------------------
         stage('Push Docker Images') {
             steps {
                 echo "📤 Envoi des images sur Docker Hub..."
@@ -106,6 +138,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 8️⃣ Déploiement Docker Compose
+        // -----------------------
         stage('Deploy') {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
@@ -118,6 +153,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 9️⃣ Tests de disponibilité
+        // -----------------------
         stage('Smoke Test') {
             steps {
                 echo "🔎 Vérification des services..."
