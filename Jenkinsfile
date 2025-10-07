@@ -100,7 +100,7 @@ pipeline {
                           -Dsonar.projectVersion=1.0 \
                           -Dsonar.sources=. \
                           -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                          -Dsonar.host.url=https://c03f0d5407813529c7f1d60796002df5.serveo.net/
+                          -Dsonar.host.url=http://192.168.56.5:9000 \
                           -Dsonar.login=$SONAR_TOKEN
                     '''
                 }
