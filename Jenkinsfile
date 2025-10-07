@@ -6,12 +6,13 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'mhd0'
-        FRONT_IMAGE = 'react-frontend'
-        BACK_IMAGE  = 'express-backend'
+        DOCKER_HUB_USER = 'kao123'
+        FRONT_IMAGE     = 'react-frontend'
+        BACK_IMAGE      = 'express-backend'
     }
+
     triggers {
-        // Pour que le pipeline démarre quand le webhook est reçu
+        // Pipeline déclenché par webhook GitHub
         GenericTrigger(
             genericVariables: [
                 [key: 'ref', value: '$.ref'],
@@ -26,13 +27,14 @@ pipeline {
     }
 
     stages {
+
         stage('Checkout') {
             steps {
                 git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
             }
         }
 
-        stage('Install dependencies - Backend') {
+        stage('Install Dependencies - Backend') {
             steps {
                 dir('back-end') {
                     sh 'npm install'
@@ -40,7 +42,7 @@ pipeline {
             }
         }
 
-        stage('Install dependencies - Frontend') {
+        stage('Install Dependencies - Frontend') {
             steps {
                 dir('front-end') {
                     sh 'npm install'
@@ -78,11 +80,29 @@ pipeline {
             }
         }
 
-        // on supprime les conteneur inactif dans docker container
         stage('Clean Docker') {
             steps {
                 sh 'docker container prune -f'
                 sh 'docker image prune -f'
+            }
+        }
+
+        // -----------------------
+        // Analyse SonarQube
+        // -----------------------
+        stage('SonarQube Analysis') {
+            steps {
+                withSonarQubeEnv('SonarQube_Local') {
+                    sh "sonar-scanner"
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
             }
         }
 
@@ -95,7 +115,7 @@ pipeline {
 
         stage('Deploy (compose.yaml)') {
             steps {
-                dir('.') {  
+                dir('.') {
                     sh 'docker-compose -f compose.yaml down || true'
                     sh 'docker-compose -f compose.yaml pull'
                     sh 'docker-compose -f compose.yaml up -d'
@@ -108,10 +128,10 @@ pipeline {
         stage('Smoke Test') {
             steps {
                 sh '''
-                    echo " Vérification Frontend (port 5173)..."
+                    echo "Vérification Frontend (port 5173)..."
                     curl -f http://localhost:5173 || echo "Frontend unreachable"
 
-                    echo " Vérification Backend (port 5001)..."
+                    echo "Vérification Backend (port 5001)..."
                     curl -f http://localhost:5001/api || echo "Backend unreachable"
                 '''
             }
