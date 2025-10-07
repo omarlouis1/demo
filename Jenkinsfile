@@ -81,6 +81,7 @@ pipeline {
         stage('SonarQube Analysis') {
             steps {
                 echo "🔍 Analyse du code avec SonarQube..."
+             withSonarQubeEnv('SonarQube_Local') {  // nom du serveur SonarQube défini dans Jenkins
                 withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
                     sh """
                         sonar-scanner \
