@@ -100,7 +100,7 @@ pipeline {
                       -Dsonar.sources=. \
                       -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
                       -Dsonar.host.url=https://f589bd1ca0730d786508b81da5f8e7bb.serveo.net
-                      -Dsonar.login=squ_93394e71a63fd199e93b617e873cb651b52e0886
+                      -Dsonar.login=sqa_c7186a48082ccb9b6477b899c78bd108de017cba
                 '''
             }
         }
