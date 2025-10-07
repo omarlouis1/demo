@@ -90,8 +90,8 @@ pipeline {
             steps {
                 echo "🐳 Construction des images Docker..."
                 sh """
-                   docker build --network=host -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
-                   docker build --network=host -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
+                  DOCKER_BUILDKIT=0 docker build --network=host --add-host registry-1.docker.io:34.194.164.123 -t kao123/express-backend:latest ./back-end
+                  DOCKER_BUILDKIT=0 docker build --network=host --add-host registry-1.docker.io:34.194.164.123 -t kao123/react-frontend:latest ./front-end
                 """
             }
         }
