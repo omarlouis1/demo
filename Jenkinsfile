@@ -94,12 +94,13 @@ pipeline {
             steps {
                 withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
                     sh '''
+                        export SONAR_SCANNER_OPTS="-Xmx1024m -Dsonar.javascript.node.max_old_space_size=2048"
                         sonar-scanner \
                           -Dsonar.projectKey=fil-rouge \
                           -Dsonar.projectName="Projet Fil Rouge" \
                           -Dsonar.projectVersion=1.0 \
                           -Dsonar.sources=. \
-                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
                           -Dsonar.host.url=http://192.168.56.5:9000 \
                           -Dsonar.token=$SONAR_TOKEN
                     '''
