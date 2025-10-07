@@ -9,7 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_TOKEN     = credentials('sonar-token') // Crée un credential Secret Text avec ton token
+        SONAR_HOST_URL  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net'
     }
 
     triggers {
@@ -88,23 +88,28 @@ pipeline {
         }
 
         // -----------------------
-        // SonarQube Analysis
+        // Analyse SonarQube
         // -----------------------
         stage('SonarQube Analysis') {
             steps {
-                sh '''
-                    sonar-scanner \
-                      -Dsonar.projectKey=fil-rouge \
-                      -Dsonar.projectName="Projet Fil Rouge" \
-                      -Dsonar.projectVersion=1.0 \
-                      -Dsonar.sources=. \
-                      -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                      -Dsonar.host.url=https://c03f0d5407813529c7f1d60796002df5.serveo.net/
-                      -Dsonar.login=squ_2fdf7f48376c92f791b635bac17efb102280d77d
-                '''
+                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                    sh '''
+                        sonar-scanner \
+                          -Dsonar.projectKey=fil-rouge \
+                          -Dsonar.projectName="Projet Fil Rouge" \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                          -Dsonar.host.url=https://c03f0d5407813529c7f1d60796002df5.serveo.net \
+                          -Dsonar.login=$SONAR_TOKEN
+                    '''
+                }
             }
         }
 
+        // -----------------------
+        // Quality Gate
+        // -----------------------
         stage('Quality Gate') {
             steps {
                 timeout(time: 1, unit: 'HOURS') {
@@ -113,6 +118,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // Vérification Docker
+        // -----------------------
         stage('Check Docker & Compose') {
             steps {
                 sh 'docker --version'
@@ -120,18 +128,26 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // Déploiement via Docker Compose
+        // -----------------------
         stage('Deploy (compose.yaml)') {
             steps {
                 dir('.') {
-                    sh 'docker-compose -f compose.yaml down || true'
-                    sh 'docker-compose -f compose.yaml pull'
-                    sh 'docker-compose -f compose.yaml up -d'
-                    sh 'docker-compose -f compose.yaml ps'
-                    sh 'docker-compose -f compose.yaml logs --tail=50'
+                    sh '''
+                        docker-compose -f compose.yaml down || true
+                        docker-compose -f compose.yaml pull
+                        docker-compose -f compose.yaml up -d
+                        docker-compose -f compose.yaml ps
+                        docker-compose -f compose.yaml logs --tail=50
+                    '''
                 }
             }
         }
 
+        // -----------------------
+        // Tests de disponibilité
+        // -----------------------
         stage('Smoke Test') {
             steps {
                 sh '''
@@ -148,15 +164,15 @@ pipeline {
     post {
         success {
             emailext(
-                subject: "Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Pipeline réussi\nDétails : ${env.BUILD_URL}",
+                subject: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Pipeline réussi 🎉\n\nDétails : ${env.BUILD_URL}\n\nAccès SonarQube : ${env.SONAR_HOST_URL}/projects",
                 to: "omzokao99@gmail.com"
             )
         }
         failure {
             emailext(
-                subject: "Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-                body: "Le pipeline a échoué\nDétails : ${env.BUILD_URL}",
+                subject: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+                body: "Le pipeline a échoué 💥\n\nDétails : ${env.BUILD_URL}",
                 to: "omzokao99@gmail.com"
             )
         }
