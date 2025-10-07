@@ -90,8 +90,8 @@ pipeline {
             steps {
                 echo "🐳 Construction des images Docker..."
                 sh """
-                    docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
-                    docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
+                   docker build --network=host -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
+                   docker build --network=host -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
                 """
             }
         }
