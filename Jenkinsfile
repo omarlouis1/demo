@@ -100,7 +100,7 @@ pipeline {
                       -Dsonar.sources=. \
                       -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
                       -Dsonar.host.url=http://192.168.56.5:9000 \
-                      -Dsonar.login=sqa_0757bfa7dd7f3d4b935b1dbbb064223fcf9976c6
+                      -Dsonar.login=squ_93394e71a63fd199e93b617e873cb651b52e0886
                 '''
             }
         }
