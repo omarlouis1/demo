@@ -101,7 +101,7 @@ pipeline {
                           -Dsonar.sources=. \
                           -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
                           -Dsonar.host.url=http://192.168.56.5:9000 \
-                          -Dsonar.login=$SONAR_TOKEN
+                          -Dsonar.token=$SONAR_TOKEN
                     '''
                 }
             }
