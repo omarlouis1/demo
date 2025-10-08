@@ -1,3 +1,4 @@
+
 pipeline {
     agent any
 
@@ -9,16 +10,9 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'http://192.168.56.5:9000'
-        WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net'
-
-        // Chemin vers Node.js installé sur Jenkins (pour éviter Node.js embarqué)
-        NODE_PATH = '/usr/local/bin/node'
-
-        // Options mémoire pour SonarScanner
-        // -Xmx4096m → JVM du scanner
-        // -Dsonar.javascript.node.max_old_space_size=4096 → Node.js pour JS/TS
-        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=8129"
+        SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
+        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net' // tunnel Serveo/ngrok
+        SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=8129"
     }
 
     triggers {
@@ -37,13 +31,19 @@ pipeline {
 
     stages {
 
+        // -----------------------
+        // 1️⃣ Récupération du code
+        // -----------------------
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
-                git branch: 'main', url: 'https://github.com/omarlouis1/demo.git'
+                git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
             }
         }
 
+        // -----------------------
+        // 2️⃣ Installation dépendances
+        // -----------------------
         stage('Install Dependencies') {
             parallel {
                 stage('Backend') {
@@ -63,6 +63,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 3️⃣ Tests unitaires
+        // -----------------------
         stage('Run Tests') {
             steps {
                 echo "🧪 Exécution des tests..."
@@ -73,37 +76,56 @@ pipeline {
             }
         }
 
-     stage('SonarQube Analysis') {
-    steps {
-        withSonarQubeEnv('SonarQube_Local') {
-            script {
-                sh '''
-                    export PATH=$NODE_PATH:$PATH
-                    export SONAR_SCANNER_OPTS="-Xmx4096m -Dsonar.javascript.node.max_old_space_size=4096"
-                    echo "🔧 Node.js utilisé : $(which node)"
-                    echo "🔧 Version Node.js : $(node -v)"
-                    
-                    sonar-scanner \
-                      -Dsonar.css.analyzer.disabled=true \
-                      -Dsonar.typescript.enabled=false \
-                      -Dsonar.nodejs.executable=/var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS_16/bin/node \
-                      -Dsonar.javascript.node.max_old_space_size=4096
-                '''
-            }
-        }
-    }
-}
-
-
-      stage('Build Docker Images') {
+        // -----------------------
+        // 4️⃣ Analyse SonarQube AVANT Build
+        // -----------------------
+        stage('SonarQube Analysis') {
             steps {
-                script {
-                    sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
-                    sh "docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end"
+                echo "🔍 Analyse du code avec SonarQube..."
+             withSonarQubeEnv('SonarQube_Local') {  // nom du serveur SonarQube défini dans Jenkins
+                withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
+                    sh """
+                        sonar-scanner \
+                          -Dsonar.projectKey=fil-rouge \
+                          -Dsonar.projectName='Projet Fil Rouge' \
+                          -Dsonar.projectVersion=1.0 \
+                          -Dsonar.sources=. \
+                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
+                          -Dsonar.host.url=${SONAR_HOST_URL} \
+                          -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
 
+        // -----------------------
+        // 5️⃣ Vérification Quality Gate
+        // -----------------------
+        stage('Quality Gate') {
+            steps {
+                echo "🛡️ Vérification du Quality Gate..."
+                timeout(time: 30, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+        // -----------------------
+        // 6️⃣ Build Docker
+        // -----------------------
+        stage('Build Docker Images') {
+            steps {
+                echo "🐳 Construction des images Docker..."
+                sh """
+                    docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
+                """
+            }
+        }
+
+        // -----------------------
+        // 7️⃣ Push Docker Hub
+        // -----------------------
         stage('Push Docker Images') {
             steps {
                 echo "📤 Envoi des images sur Docker Hub..."
@@ -117,6 +139,9 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 8️⃣ Déploiement Docker Compose
+        // -----------------------
         stage('Deploy') {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
@@ -129,11 +154,14 @@ pipeline {
             }
         }
 
+        // -----------------------
+        // 9️⃣ Tests de disponibilité
+        // -----------------------
         stage('Smoke Test') {
             steps {
                 echo "🔎 Vérification des services..."
                 sh '''
-                    echo "Frontend (port 5173) :"
+                    echo "Frontend (port 5173) :" 
                     curl -f http://localhost:5173 || echo "⚠️ Frontend inaccessible"
                     echo "Backend (port 5001) :"
                     curl -f http://localhost:5001/api || echo "⚠️ Backend inaccessible"
