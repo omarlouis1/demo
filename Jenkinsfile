@@ -11,11 +11,14 @@ pipeline {
         BACK_IMAGE      = 'express-backend'
         SONAR_HOST_URL  = 'http://192.168.56.5:9000'
         WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net'
-        // Chemin vers Node.js installé sur Jenkins (pas celui embarqué)
+
+        // Chemin vers Node.js installé sur Jenkins (pour éviter Node.js embarqué)
         NODE_PATH = '/usr/local/bin/node'
+
         // Options mémoire pour SonarScanner
-        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=8049"
-        
+        // -Xmx4096m → JVM du scanner
+        // -Dsonar.javascript.node.max_old_space_size=4096 → Node.js pour JS/TS
+        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=4096"
     }
 
     triggers {
@@ -69,15 +72,22 @@ pipeline {
                 }
             }
         }
-       stage('SonarQube Analysis') {
+
+        stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube_Local') {
-                    sh 'sonar-scanner'
+                    script {
+                        // Force l'utilisation de Node.js externe pour JS/TS
+                        sh '''
+                            export PATH=$NODE_PATH:$PATH
+                            echo "🔧 Node.js utilisé : $(which node)"
+                            echo "🔧 Version Node.js : $(node -v)"
+                            sonar-scanner
+                        '''
+                    }
                 }
             }
         }
-
-        
 
         stage('Build Docker Images') {
             steps {
@@ -87,7 +97,6 @@ pipeline {
                 }
             }
         }
-
 
         stage('Push Docker Images') {
             steps {
@@ -118,7 +127,7 @@ pipeline {
             steps {
                 echo "🔎 Vérification des services..."
                 sh '''
-                    echo "Frontend (port 5173) :" 
+                    echo "Frontend (port 5173) :"
                     curl -f http://localhost:5173 || echo "⚠️ Frontend inaccessible"
                     echo "Backend (port 5001) :"
                     curl -f http://localhost:5001/api || echo "⚠️ Backend inaccessible"
