@@ -11,6 +11,10 @@ pipeline {
         BACK_IMAGE      = 'express-backend'
         SONAR_HOST_URL  = 'http://192.168.56.5:9000'
         WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net'
+        // Chemin vers Node.js installé sur Jenkins (pas celui embarqué)
+        NODE_PATH = '/usr/local/bin/node'
+        // Options mémoire pour SonarScanner
+        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=8192"
         
     }
 
