@@ -93,13 +93,13 @@ pipeline {
 
         stage('Build Docker Images') {
             steps {
-                echo "🐳 Construction des images Docker..."
-                sh """
-                  DOCKER_BUILDKIT=0 docker build --network=host --add-host registry-1.docker.io:34.194.164.123 -t kao123/express-backend:latest ./back-end
-                  DOCKER_BUILDKIT=0 docker build --network=host --add-host registry-1.docker.io:34.194.164.123 -t kao123/react-frontend:latest ./front-end
-                """
+                script {
+                    sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
+                    sh "docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end"
+                }
             }
         }
+
 
         stage('Push Docker Images') {
             steps {
