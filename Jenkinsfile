@@ -73,23 +73,22 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube_Local') {
-                    script {
-                        // Force l'utilisation de Node.js externe pour JS/TS
-                        sh '''
-                            export PATH=$NODE_PATH:$PATH
-                            echo "🔧 Node.js utilisé : $(which node)"
-                            echo "🔧 Version Node.js : $(node -v)"
-                            sonar-scanner
-                        '''
-                    }
-                }
+      stage('SonarQube Analysis') {
+    steps {
+        withSonarQubeEnv('SonarQube_Local') {
+            script {
+                sh '''
+                    export PATH=$NODE_PATH:$PATH
+                    echo "🔧 Node.js utilisé : $(which node)"
+                    echo "🔧 Version Node.js : $(node -v)"
+                    # Exécute SonarScanner avec CSS désactivé
+                    sonar-scanner -Dsonar.css.analyzer.disabled=true
+                '''
             }
         }
-
-        stage('Build Docker Images') {
+    }
+}
+      stage('Build Docker Images') {
             steps {
                 script {
                     sh "docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end"
