@@ -11,7 +11,7 @@ pipeline {
         BACK_IMAGE      = 'express-backend'
         SONAR_HOST_URL  = 'http://192.168.56.5:9000'
         WEBHOOK_PUBLIC  = 'https://fdaa1444ee367cea4635570305754422.serveo.net'
-        SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=4096"
+        SONAR_SCANNER_OPTS = "-Xmx2048m -Dsonar.javascript.node.max_old_space_size=8096"
     }
 
     triggers {
