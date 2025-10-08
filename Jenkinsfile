@@ -79,17 +79,21 @@ pipeline {
             script {
                 sh '''
                     export PATH=$NODE_PATH:$PATH
+                    export SONAR_SCANNER_OPTS="-Xmx4096m -Dsonar.javascript.node.max_old_space_size=4096"
                     echo "🔧 Node.js utilisé : $(which node)"
                     echo "🔧 Version Node.js : $(node -v)"
-                    # Exécute SonarScanner avec CSS désactivé et Node externe
+                    
                     sonar-scanner \
                       -Dsonar.css.analyzer.disabled=true \
-                      -Dsonar.nodejs.executable=/var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS_16/bin/node
+                      -Dsonar.typescript.enabled=false \
+                      -Dsonar.nodejs.executable=/var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS_16/bin/node \
+                      -Dsonar.javascript.node.max_old_space_size=4096
                 '''
             }
         }
     }
 }
+
 
       stage('Build Docker Images') {
             steps {
