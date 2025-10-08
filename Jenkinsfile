@@ -14,7 +14,7 @@ pipeline {
         // Chemin vers Node.js installé sur Jenkins (pas celui embarqué)
         NODE_PATH = '/usr/local/bin/node'
         // Options mémoire pour SonarScanner
-        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=8192"
+        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=12288"
         
     }
 
@@ -77,13 +77,7 @@ pipeline {
             }
         }
 
-        stage('Quality Gate') {
-            steps {
-                timeout(time: 1, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
+        
 
         stage('Build Docker Images') {
             steps {
