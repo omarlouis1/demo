@@ -18,7 +18,7 @@ pipeline {
         // Options mémoire pour SonarScanner
         // -Xmx4096m → JVM du scanner
         // -Dsonar.javascript.node.max_old_space_size=4096 → Node.js pour JS/TS
-        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=4096"
+        SONAR_SCANNER_OPTS = "-Xmx4096m -Dsonar.javascript.node.max_old_space_size=8129"
     }
 
     triggers {
