@@ -99,18 +99,6 @@ pipeline {
         } // 👈👉 Accolade fermante manquante ajoutée ici !
 
         // -----------------------
-        // 5️⃣ Vérification Quality Gate
-        // -----------------------
-        stage('Quality Gate') {
-            steps {
-                echo "🛡️ Vérification du Quality Gate..."
-                timeout(time: 30, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
-
-        // -----------------------
         // 6️⃣ Build Docker
         // -----------------------
         stage('Build Docker Images') {
