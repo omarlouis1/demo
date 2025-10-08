@@ -73,7 +73,7 @@ pipeline {
             }
         }
 
-      stage('SonarQube Analysis') {
+     stage('SonarQube Analysis') {
     steps {
         withSonarQubeEnv('SonarQube_Local') {
             script {
@@ -81,13 +81,16 @@ pipeline {
                     export PATH=$NODE_PATH:$PATH
                     echo "🔧 Node.js utilisé : $(which node)"
                     echo "🔧 Version Node.js : $(node -v)"
-                    # Exécute SonarScanner avec CSS désactivé
-                    sonar-scanner -Dsonar.css.analyzer.disabled=true
+                    # Exécute SonarScanner avec CSS désactivé et Node externe
+                    sonar-scanner \
+                      -Dsonar.css.analyzer.disabled=true \
+                      -Dsonar.nodejs.executable=/var/jenkins_home/tools/jenkins.plugins.nodejs.tools.NodeJSInstallation/NodeJS_16/bin/node
                 '''
             }
         }
     }
 }
+
       stage('Build Docker Images') {
             steps {
                 script {
