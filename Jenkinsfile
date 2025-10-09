@@ -6,11 +6,9 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER = 'kao123'
-        FRONT_IMAGE     = 'react-frontend'
-        BACK_IMAGE      = 'express-backend'
-      
-        
+        DOCKER_USER   = 'kao123'              // Ton identifiant Docker Hub
+        FRONT_IMAGE   = 'react-frontend'
+        BACK_IMAGE    = 'express-backend'
     }
 
     triggers {
@@ -29,9 +27,6 @@ pipeline {
 
     stages {
 
-        // -----------------------
-        // 1️⃣ Récupération du code
-        // -----------------------
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
@@ -39,9 +34,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 2️⃣ Installation dépendances
-        // -----------------------
         stage('Install Dependencies') {
             parallel {
                 stage('Backend') {
@@ -61,9 +53,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 3️⃣ Tests unitaires
-        // -----------------------
         stage('Run Tests') {
             steps {
                 echo "🧪 Exécution des tests..."
@@ -74,42 +63,29 @@ pipeline {
             }
         }
 
-        // -----------------------
-       
-
-        
-        // -----------------------
-        // 6️⃣ Build Docker
-        // -----------------------
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Construction des images Docker..."
                 sh """
-                    docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
-                    docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
+                    docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
                 """
             }
         }
-        // -----------------------
-        // 7️⃣ Push Docker Hub
-        // -----------------------
+
         stage('Push Docker Images') {
             steps {
                 echo "📤 Envoi des images sur Docker Hub..."
-                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_PASS')]) {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker push $DOCKER_HUB_USER/react-frontend:latest
-                        docker push $DOCKER_HUB_USER/express-backend:latest
+                        echo "$DOCKER_PASS" | docker login -u "$DOCKER_USER" --password-stdin
+                        docker push "$DOCKER_USER/react-frontend:latest"
+                        docker push "$DOCKER_USER/express-backend:latest"
                     '''
                 }
             }
         }
-    
 
-        // -----------------------
-        // 8️⃣ Déploiement Docker Compose
-        // -----------------------
         stage('Deploy') {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
@@ -122,9 +98,6 @@ pipeline {
             }
         }
 
-        // -----------------------
-        // 9️⃣ Tests de disponibilité
-        // -----------------------
         stage('Smoke Test') {
             steps {
                 echo "🔎 Vérification des services..."
@@ -146,8 +119,6 @@ pipeline {
                 body: """
                 ✅ Build réussi pour ${env.JOB_NAME} #${env.BUILD_NUMBER}
                 🔗 Détails: ${env.BUILD_URL}
-                🔍 Analyse SonarQube: ${SONAR_HOST_URL}/dashboard?id=fil-rouge
-                🌍 Webhook Serveo/Ngrok: ${WEBHOOK_PUBLIC}
                 """,
                 to: "omzokao99@gmail.com"
             )
