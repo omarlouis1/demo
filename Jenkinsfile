@@ -79,6 +79,7 @@ pipeline {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
                 sh '''
+                    docker rm -f sonarqube || true
                     docker-compose -f compose.yaml pull
                     docker-compose -f compose.yaml up -d --force-recreate
                     docker-compose ps
