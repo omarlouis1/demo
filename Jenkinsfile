@@ -9,8 +9,7 @@ pipeline {
         DOCKER_HUB_USER = 'kao123'
         FRONT_IMAGE     = 'react-frontend'
         BACK_IMAGE      = 'express-backend'
-        SONAR_HOST_URL  = 'http://192.168.56.5:9000'   // SonarQube local
-        WEBHOOK_PUBLIC  = 'https://c03f0d5407813529c7f1d60796002df5.serveo.net' // tunnel Serveo/ngrok
+      
         
     }
 
@@ -76,27 +75,7 @@ pipeline {
         }
 
         // -----------------------
-        // 4️⃣ Analyse SonarQube AVANT Build
-        // -----------------------
-        stage('SonarQube Analysis') {
-            steps {
-                echo "🔍 Analyse du code avec SonarQube..."
-                withSonarQubeEnv('SonarQube_Local') {  // nom du serveur SonarQube défini dans Jenkins
-                    withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                        sh """
-                            sonar-scanner \
-                              -Dsonar.projectKey=fil-rouge \
-                              -Dsonar.projectName='Projet Fil Rouge' \
-                              -Dsonar.projectVersion=1.0 \
-                              -Dsonar.sources=. \
-                              -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                              -Dsonar.host.url=${SONAR_HOST_URL} \
-                              -Dsonar.token=${SONAR_TOKEN}
-                        """
-                    }
-                }
-            }
-        } // 👈👉 Accolade fermante manquante ajoutée ici !
+       
 
         
         // -----------------------
