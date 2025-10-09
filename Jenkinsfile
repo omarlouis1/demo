@@ -30,7 +30,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo "📦 Récupération du code depuis GitHub..."
-                git branch: 'main', url: 'https://github.com/mhdgeek/express_mongo_react.git'
+                git branch: 'main', url: 'https://github.com/omarlouis1/demo.git'
             }
         }
 
@@ -79,6 +79,7 @@ pipeline {
         withSonarQubeEnv('SonarQube_Local') {
             withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
                 withEnv(["PATH+NODEJS=${tool name: 'NodeJS_16', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'}/bin"]) {
+                    tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
                     sh '''
                         sonar-scanner \
                           -Dsonar.projectKey=fil-rouge \
@@ -103,7 +104,6 @@ pipeline {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
                 sh '''
-                    docker rm -f sonarqube || true
                     docker-compose -f compose.yaml pull
                     docker-compose -f compose.yaml up -d --force-recreate
                     docker-compose ps
