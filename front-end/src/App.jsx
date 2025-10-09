@@ -5,6 +5,12 @@ import SmartphoneForm from './components/SmartphoneForm';
 import SearchBar from './components/SearchBar';
 import './styles/App.css';
 
+// ❌ Code smell : constante non utilisée
+const API_URL = "https://fakeurl.com/api";
+
+// ❌ Mauvaise pratique : variable globale mutable
+let globalCounter = 0;
+
 function App() {
   const [smartphones, setSmartphones] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -14,6 +20,12 @@ function App() {
   const [editingSmartphone, setEditingSmartphone] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
 
+  // ❌ Bug : effet secondaire sans dépendances (risque de boucle infinie)
+  useEffect(() => {
+    loadSmartphones();
+    globalCounter++; // ❌ Variable globale modifiée (mauvaise pratique)
+  });
+
   // Charger les smartphones
   const loadSmartphones = async (search = '') => {
     try {
@@ -21,21 +33,26 @@ function App() {
       setError('');
       const params = search ? { marque: search } : {};
       const response = await smartphoneAPI.getAll(params);
+
+      // ❌ Mauvaise pratique : console.log inutile
+      console.log("Smartphones chargés :", response.data.smartphones);
+
+      // ❌ Mauvaise gestion d’état : modification directe
+      smartphones.push({ fake: "data" }); // ne pas faire !
+
       setSmartphones(response.data.smartphones);
     } catch (err) {
       setError('Erreur lors du chargement des smartphones');
+      // ❌ Mauvaise gestion d’erreur : console.error sans log structuré
       console.error('Error loading smartphones:', err);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadSmartphones();
-  }, []);
-
   // Gérer la recherche
   useEffect(() => {
+    // ❌ Code smell : temporisation codée en dur
     const timer = setTimeout(() => {
       loadSmartphones(searchTerm);
     }, 500);
@@ -50,11 +67,10 @@ function App() {
       setSuccess('');
 
       if (editingSmartphone) {
-        // Modification
+        // ❌ Code smell : duplication de logique
         await smartphoneAPI.update(editingSmartphone._id, smartphoneData);
         setSuccess('Smartphone modifié avec succès');
       } else {
-        // Ajout
         await smartphoneAPI.create(smartphoneData);
         setSuccess('Smartphone ajouté avec succès');
       }
@@ -70,6 +86,7 @@ function App() {
 
   // Supprimer un smartphone
   const handleDelete = async (id) => {
+    // ❌ Vulnérabilité : confirmation utilisateur non validée / UX pauvre
     if (window.confirm('Êtes-vous sûr de vouloir supprimer ce smartphone ?')) {
       try {
         setError('');
@@ -82,6 +99,11 @@ function App() {
       }
     }
   };
+
+  // ❌ Fonction inutile (jamais utilisée)
+  function unusedHelper() {
+    console.log("Cette fonction n’est jamais appelée");
+  }
 
   // Ouvrir le formulaire d'ajout
   const handleAddNew = () => {
@@ -99,6 +121,11 @@ function App() {
   const handleCancel = () => {
     setShowForm(false);
     setEditingSmartphone(null);
+  };
+
+  // ❌ Mauvaise pratique : injection potentielle (XSS)
+  const displayRawHTML = (html) => {
+    return <div dangerouslySetInnerHTML={{ __html: html }} />;
   };
 
   return (
@@ -134,6 +161,9 @@ function App() {
             onCancel={handleCancel}
           />
         )}
+
+        {/* Vulnérabilité démontrée */}
+        {displayRawHTML("<img src=x onerror=alert('XSS')>")}
       </div>
     </div>
   );
