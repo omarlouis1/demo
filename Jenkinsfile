@@ -79,9 +79,8 @@ pipeline {
             steps {
                 echo "🚀 Déploiement via docker-compose..."
                 sh '''
-                    docker-compose -f compose.yaml down || true
                     docker-compose -f compose.yaml pull
-                    docker-compose -f compose.yaml up -d
+                    docker-compose -f compose.yaml up -d --force-recreate
                     docker-compose ps
                 '''
             }
