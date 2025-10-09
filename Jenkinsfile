@@ -90,7 +90,21 @@ pipeline {
                 """
             }
         }
-
+        // -----------------------
+        // 7️⃣ Push Docker Hub
+        // -----------------------
+        stage('Push Docker Images') {
+            steps {
+                echo "📤 Envoi des images sur Docker Hub..."
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_HUB_USER/react-frontend:latest
+                        docker push $DOCKER_HUB_USER/express-backend:latest
+                    '''
+                }
+            }
+        }
     
 
         // -----------------------
