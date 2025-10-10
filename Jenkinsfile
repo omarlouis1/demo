@@ -63,15 +63,7 @@ pipeline {
             }
         }
 
-        stage('Build Docker Images') {
-            steps {
-                echo "🐳 Construction des images Docker..."
-                sh """
-                    docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
-                    docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
-                """
-            }
-        }
+  
 
        stage('SonarQube Analysis') {
     steps {
@@ -97,7 +89,7 @@ pipeline {
             }
         }
     }
-}
+}       
         stage('Quality Gate') {
             steps {
                 echo "🛡️ Vérification du Quality Gate..."
@@ -106,6 +98,29 @@ pipeline {
                 }
             }
         }
+        stage('Build Docker Images') {
+            steps {
+                echo "🐳 Construction des images Docker..."
+                sh """
+                    docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
+                """
+            }
+        }
+
+        
+        stage('Push Docker Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_USER/react-frontend:latest
+                        docker push $DOCKER_USER/express-backend:latest
+                    '''
+                }
+            }
+        }
+        
            
 
         stage('Deploy') {
