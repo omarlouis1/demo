@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_USER   = 'kao123'              // Ton identifiant Docker Hub
+        DOCKER_HUB_USER   = 'kao123'              // Ton identifiant Docker Hub
         FRONT_IMAGE   = 'react-frontend'
         BACK_IMAGE    = 'express-backend'
     }
@@ -102,33 +102,23 @@ pipeline {
             steps {
                 echo "🐳 Construction des images Docker..."
                 sh """
-                    docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
-                    docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
+                    docker build -t $DOCKER_HUB_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_HUB_USER/$FRONT_IMAGE:latest ./front-end
                 """
             }
         }
 
-        
-        stage('Push Docker Images') {
-    steps {
-        echo "📤 Envoi des images sur Docker Hub..."
-        withCredentials([usernamePassword(
-            credentialsId: 'dockerhub-credentials',
-            usernameVariable: 'DOCKER_HUB_USER',
-            passwordVariable: 'DOCKER_HUB_PASS'
-        )]) {
-            sh """
-                echo \$DOCKER_HUB_PASS | docker login -u \$DOCKER_HUB_USER --password-stdin
-                docker push \$DOCKER_HUB_USER/$FRONT_IMAGE:latest
-                docker push \$DOCKER_HUB_USER/$BACK_IMAGE:latest
-                docker logout
-            """
+           stage('Push Docker Images') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh '''
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker push $DOCKER_USER/react-frontend:latest
+                        docker push $DOCKER_USER/express-backend:latest
+                    '''
+                }
+            }
         }
-    }
-}
-
-        
-           
 
         stage('Deploy') {
             steps {
