@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        DOCKER_HUB_USER   = 'kao123'              // Ton identifiant Docker Hub
+        DOCKER_USER   = 'kao123'              // Ton identifiant Docker Hub
         FRONT_IMAGE   = 'react-frontend'
         BACK_IMAGE    = 'express-backend'
     }
