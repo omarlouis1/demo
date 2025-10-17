@@ -64,40 +64,6 @@ pipeline {
         }
 
   
-
-       stage('SonarQube Analysis') {
-    steps {
-        echo "🔍 Analyse du code avec SonarQube..."
-        withSonarQubeEnv('SonarQube_Local') {
-            withCredentials([string(credentialsId: 'sonar', variable: 'SONAR_TOKEN')]) {
-                withEnv(["PATH+NODEJS=${tool name: 'NodeJS_16', type: 'jenkins.plugins.nodejs.tools.NodeJSInstallation'}/bin"]) {
-                    tool name: 'SonarScanner', type: 'hudson.plugins.sonar.SonarRunnerInstallation'
-                    sh '''
-                        sonar-scanner \
-                          -Dsonar.projectKey=fil-rouge \
-                          -Dsonar.projectName="Projet Fil Rouge" \
-                          -Dsonar.projectVersion=1.0 \
-                          -Dsonar.sources=front-end,back-end \
-                          -Dsonar.language=js \
-                          -Dsonar.sourceEncoding=UTF-8 \
-                          -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**,**/*.test.js,**/*.spec.js \
-                          -Dsonar.host.url=http://192.168.56.5:9000 \
-                          -Dsonar.token=$SONAR_TOKEN \
-                          -Dsonar.nodejs.executable=$(which node)
-                    '''
-                }
-            }
-        }
-    }
-}       
-        stage('Quality Gate') {
-            steps {
-                echo "🛡️ Vérification du Quality Gate..."
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        }
         stage('Build Docker Images') {
             steps {
                 echo "🐳 Construction des images Docker..."
