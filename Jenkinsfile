@@ -68,8 +68,8 @@ pipeline {
             steps {
                 echo "🐳 Construction des images Docker..."
                 sh """
-                    sudo docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
-                    sudo docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
+                    docker build -t $DOCKER_USER/$BACK_IMAGE:latest ./back-end
+                    docker build -t $DOCKER_USER/$FRONT_IMAGE:latest ./front-end
                 """
             }
         }
