@@ -1,1 +1,25 @@
-
+# k8s/back-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend # Nom du déploiement
+spec:
+  replicas: 1 # Nombre de pods backend à exécuter
+  selector:
+    matchLabels:
+      app: backend # Permet d'identifier les pods gérés par ce déploiement
+  template:
+    metadata:
+      labels:
+        app: backend # Étiquette appliquée au pod
+    spec:
+      containers:
+        - name: backend # Nom du conteneur
+          image: kao123/express-backend:latest # Image Docker à déployer
+          ports:
+            - containerPort: 5000 # Port exposé dans le conteneur
+          env:
+            - name: MONGODB_URI
+              value: "mongodb://mongo-service:27017/smartphoneDB" # URL du service Mongo
+            - name: PORT
+              value: "5000" # Port utilisé par le serveur backend
