@@ -74,55 +74,43 @@ pipeline {
             }
         }
 
-           stage('Push Docker Images') {
+      stage('Push Docker Images') {
     steps {
-        echo "📤 Tentative d'envoi des images Docker vers Docker Hub..."
+        echo "📤 Poussée des images Docker vers Docker Hub..."
 
         script {
             withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-                echo "🔐 Connexion à Docker Hub avec l'utilisateur: ${env.DOCKER_USER}"
 
-                // Afficher les images disponibles avant le push
-                sh '''
-                    echo "🧩 Images disponibles localement :"
-                    docker images
-                '''
+                echo "🔐 Connexion à Docker Hub avec l'utilisateur : ${env.DOCKER_USER}"
 
-                // Tentative de connexion
-                sh '''
-                    set -x  # Active le mode debug (affiche les commandes exécutées)
-                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin || {
-                        echo "❌ ERREUR: Échec de l'authentification Docker Hub !"
-                        exit 1
-                    }
-                    set +x
-                '''
+                // Connexion Docker Hub
+                sh """
+                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
+                """
 
-                // Pousser les images avec affichage des erreurs
-                sh '''
-                    set -x
-                    echo "🚀 Poussée de l'image front-end..."
-                    docker push "$DOCKER_USER/$FRONT_IMAGE:latest" || {
-                        echo "❌ ERREUR: Échec du push pour $DOCKER_USER/$FRONT_IMAGE:latest"
-                        docker logout
-                        exit 1
-                    }
+                // Afficher les images locales
+                sh 'docker images'
 
-                    echo "🚀 Poussée de l'image back-end..."
-                    docker push "$DOCKER_USER/$BACK_IMAGE:latest" || {
-                        echo "❌ ERREUR: Échec du push pour $DOCKER_USER/$BACK_IMAGE:latest"
-                        docker logout
-                        exit 1
-                    }
+                // Pousser l'image frontend
+                sh """
+                    echo "🚀 Poussée de l'image frontend..."
+                    docker push $DOCKER_USER/$FRONT_IMAGE:latest
+                """
 
-                    docker logout
-                    echo "✅ Images poussées avec succès sur Docker Hub !"
-                    set +x
-                '''
+                // Pousser l'image backend
+                sh """
+                    echo "🚀 Poussée de l'image backend..."
+                    docker push $DOCKER_USER/$BACK_IMAGE:latest
+                """
+
+                // Logout Docker Hub
+                sh 'docker logout'
+                echo "✅ Images poussées avec succès sur Docker Hub !"
             }
         }
     }
 }
+
 
         stage('Deploy') {
             steps {
