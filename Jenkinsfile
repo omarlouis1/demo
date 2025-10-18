@@ -74,42 +74,7 @@ pipeline {
             }
         }
 
-      stage('Push Docker Images') {
-    steps {
-        echo "📤 Poussée des images Docker vers Docker Hub..."
-
-        script {
-            withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DH_USER', passwordVariable: 'DH_PASS')]) {
-
-                echo "🔐 Connexion à Docker Hub avec l'utilisateur : ${env.DOCKER_USER}"
-
-                // Connexion Docker Hub
-                sh """
-                    echo "$DH_PASS" | docker login -u "$DH_USER" --password-stdin
-                """
-
-                // Afficher les images locales
-                sh 'docker images'
-
-                // Pousser l'image frontend
-                sh """
-                    echo "🚀 Poussée de l'image frontend..."
-                    docker push $DOCKER_USER/$FRONT_IMAGE:latest
-                """
-
-                // Pousser l'image backend
-                sh """
-                    echo "🚀 Poussée de l'image backend..."
-                    docker push $DOCKER_USER/$BACK_IMAGE:latest
-                """
-
-                // Logout Docker Hub
-                sh 'docker logout'
-                echo "✅ Images poussées avec succès sur Docker Hub !"
-            }
-        }
-    }
-}
+      
 
 
         stage('Deploy') {
