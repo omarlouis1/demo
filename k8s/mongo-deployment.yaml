@@ -1,1 +1,23 @@
-
+# k8s/mongo-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo # Nom du déploiement MongoDB
+spec:
+  replicas: 1 # Nombre de pods MongoDB
+  selector:
+    matchLabels:
+      app: mongo # Label pour associer les pods à ce déploiement
+  template:
+    metadata:
+      labels:
+        app: mongo
+    spec:
+      containers:
+        - name: mongo
+          image: mongo:latest # Image officielle MongoDB
+          ports:
+            - containerPort: 27017 # Port interne exposé pour MongoDB
+          env:
+            - name: MONGO_INITDB_DATABASE
+              value: smartphoneDB # Base de données initiale créée automatiquement
