@@ -1,1 +1,15 @@
-
+# k8s/front-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  selector:
+    app: frontend
+  ports:
+    - port: 80 # Port externe du service
+      targetPort: 80 # Port du container Nginx
+      nodePort: 30002 # Port NodePort
+  # - port: 5173
+  #   targetPort: 5173
+  type: NodePort
