@@ -1,1 +1,24 @@
-
+# k8s/front-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend # Nom du déploiement frontend
+spec:
+  replicas: 1 # Nombre de pods frontend
+  selector:
+    matchLabels:
+      app: frontend # Label utilisé pour associer le pod au déploiement
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: kao123/react-frontend:latest # Image Docker du frontend
+          ports:
+            - containerPort: 80 # Port interne exposé par le conteneur (80 car utilisation de nginx)
+              # Si vous n'utilisez pas nginx, vous pouvez exposer le port de développement Vite (5173)
+          env:
+            - name: VITE_API_URL
+              value: "http://192.168.49.2:30001/api" # URL vers le backend via NodePort
